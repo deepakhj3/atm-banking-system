@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Secure Digital ATM</title>
+
+    <style>
+
+        /* ===== GLOBAL ===== */
+        * { box-sizing: border-box; }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: white;
+            animation: fadeIn 1s ease-in-out;
+        }
+
+        /* ===== LOADER ===== */
+        .loader {
+            position: fixed;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 9999;
+            backdrop-filter: blur(5px);
+        }
+
+        .spinner {
+            width: 60px;
+            height: 60px;
+            border: 6px solid #ffffff;
+            border-top: 6px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* ===== CONTAINER ===== */
+        .container {
+            max-width: 1100px;
+            margin: 40px auto;
+            padding: 20px;
+        }
+
+        /* ===== GLASS CARD ===== */
+        .glass {
+            background: rgba(255,255,255,0.15);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        /* ===== HEADER ===== */
+        .header {
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 30px;
+        }
+
+        /* ===== LOGIN ===== */
+        .login-card {
+            padding: 40px;
+            max-width: 400px;
+            margin: auto;
+            text-align: center;
+        }
+
+        input {
+            width: 100%;
+            padding: 14px;
+            margin: 15px 0;
+            border-radius: 8px;
+            border: none;
+            outline: none;
+        }
+
+        /* ===== BUTTON ===== */
+        button {
+            width: 100%;
+            padding: 14px;
+            margin: 10px 0;
+            border-radius: 10px;
+            border: none;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.4);
+        }
+
+        /* ===== DASHBOARD ===== */
+        .dashboard {
+            display: flex;
+            gap: 25px;
+        }
+
+        .left-panel {
+            flex: 1;
+            padding: 20px;
+        }
+
+        .right-panel {
+            flex: 2;
+            padding: 30px;
+            min-height: 350px;
+            color: #212121;
+            background: white;
+            border-radius: 15px;
+        }
+
+        /* ===== TABLE ===== */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+        }
+
+        th {
+            background: #667eea;
+            color: white;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+        }
+
+        tr:nth-child(even) {
+            background: #f2f2f2;
+        }
+
+        .hidden { display: none; }
+
+        @keyframes fadeIn {
+            from {opacity: 0; transform: translateY(10px);}
+            to {opacity: 1; transform: translateY(0);}
+        }
+
+        @media(max-width:768px){
+            .dashboard { flex-direction: column; }
+        }
+
+    </style>
+</head>
+
+<body>
+
+<!-- LOADING OVERLAY -->
+<div id="loader" class="loader hidden">
+    <div class="spinner"></div>
+</div>
+
+<div class="container">
+
+    <!-- HEADER -->
+    <div class="header glass hidden" id="mainHeader">
+        <h2>🏦 Secure Bank ATM</h2>
+        <div id="profileInfo"></div>
+    </div>
+
+    <!-- LOGIN -->
+    <div class="login-card glass" id="loginSection">
+        <h2>Bank Login</h2>
+        <input type="text" id="accountNumber" placeholder="Account Number">
+        <input type="password" id="pin" placeholder="PIN">
+        <button onclick="login()">Login</button>
+        <p id="loginMessage"></p>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="menuSection" class="hidden">
+        <div class="dashboard">
+
+            <div class="left-panel glass">
+                <button onclick="checkBalance()">💰 Check Balance</button>
+                <button onclick="deposit()">➕ Deposit</button>
+                <button onclick="withdraw()">➖ Withdraw</button>
+                <button onclick="transactions()">📄 Transactions</button>
+                <button onclick="logout()">🚪 Logout</button>
+            </div>
+
+            <div id="outputSection" class="right-panel">
+                <h3>Welcome to Secure ATM</h3>
+                <p>Your activity will appear here.</p>
+            </div>
+
+        </div>
+    </div>
+
+</div>
+
+<script>
+
+    let currentAccount = "";
+
+    /* LOADER FUNCTIONS */
+    function showLoader(){ document.getElementById("loader").classList.remove("hidden"); }
+    function hideLoader(){ document.getElementById("loader").classList.add("hidden"); }
+
+    /* LOGIN */
+    function login(){
+        showLoader();
+
+        const acc = document.getElementById("accountNumber").value;
+        const pin = document.getElementById("pin").value;
+
+        fetch("/atm/login",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({accountNumber:acc,pin:pin})
+        })
+        .then(res=>res.text())
+        .then(data=>{
+            hideLoader();
+
+            if(data==="Login Successful"){
+                currentAccount=acc;
+                document.getElementById("loginSection").classList.add("hidden");
+                document.getElementById("menuSection").classList.remove("hidden");
+                document.getElementById("mainHeader").classList.remove("hidden");
+
+                let masked="XXXXXX"+acc.slice(-4);
+                document.getElementById("profileInfo").innerText="Account: "+masked;
+
+                showMessage("Login Successful ✅");
+            }else{
+                document.getElementById("loginMessage").innerText=data;
+            }
+        })
+        .catch(()=>{hideLoader();alert("Error occurred");});
+    }
+
+    /* SHOW MESSAGE */
+    function showMessage(msg){
+        document.getElementById("outputSection").innerHTML=
+            "<h3 style='text-align:center;'>"+msg+"</h3>";
+    }
+
+    /* BALANCE */
+    function checkBalance(){
+        showLoader();
+        fetch(`/atm/balance?accountNumber=${currentAccount}`)
+        .then(res=>res.text())
+        .then(data=>{
+            hideLoader();
+            document.getElementById("outputSection").innerHTML=`
+                <div style="text-align:center;">
+                    <h1 style="font-size:48px;">💰 ₹ ${data}</h1>
+                    <p>Available Balance</p>
+                </div>`;
+        })
+        .catch(()=>{hideLoader();alert("Error occurred");});
+    }
+
+    /* DEPOSIT */
+    function deposit(){
+        const amount=parseFloat(prompt("Enter Deposit Amount:"));
+        if(!amount||amount<=0)return alert("Enter valid amount");
+
+        showLoader();
+        fetch("/atm/deposit",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({accountNumber:currentAccount,balance:amount})
+        })
+        .then(res=>res.text())
+        .then(data=>{hideLoader();showMessage(data);})
+        .catch(()=>{hideLoader();alert("Error occurred");});
+    }
+
+    /* WITHDRAW */
+    function withdraw(){
+        const amount=parseFloat(prompt("Enter Withdraw Amount:"));
+        if(!amount||amount<=0)return alert("Enter valid amount");
+
+        showLoader();
+        fetch("/atm/withdraw",{
+            method:"POST",
+            headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({accountNumber:currentAccount,balance:amount})
+        })
+        .then(res=>res.text())
+        .then(data=>{hideLoader();showMessage(data);})
+        .catch(()=>{hideLoader();alert("Error occurred");});
+    }
+
+    /* TRANSACTIONS */
+    function transactions(){
+        showLoader();
+        fetch(`/atm/transactions?accountNumber=${currentAccount}`)
+        .then(res=>res.json())
+        .then(data=>{
+            hideLoader();
+
+            if(data.length===0)
+                return showMessage("No Transactions Found");
+
+            let table="<h3>Transaction History</h3>";
+            table+="<table><tr><th>Type</th><th>Amount</th></tr>";
+
+            data.forEach(t=>{
+                table+=`<tr><td>${t.type}</td><td>₹ ${t.amount}</td></tr>`;
+            });
+
+            table+="</table>";
+            document.getElementById("outputSection").innerHTML=table;
+        })
+        .catch(()=>{hideLoader();alert("Error occurred");});
+    }
+
+    /* LOGOUT */
+    function logout(){
+        currentAccount="";
+        document.getElementById("menuSection").classList.add("hidden");
+        document.getElementById("loginSection").classList.remove("hidden");
+        document.getElementById("mainHeader").classList.add("hidden");
+        document.getElementById("outputSection").innerHTML="";
+    }
+
+</script>
+
+</body>
+</html>
