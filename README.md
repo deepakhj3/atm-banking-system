@@ -75,8 +75,9 @@ src
 1. Clone the repository
 2. Open in IntelliJ / Eclipse
 3. Run `DemoApplication`
-4. Open browser:
-   http://localhost:8080/
+4. Open browser:https://atm-banking-system-3ugv.onrender.com/
+5.UserID == 1001,1002,1003.
+6.Password == 1234,2222,3333.
  
 
 ---
@@ -94,5 +95,6 @@ src
 
 Deepak HJ  
 Aspiring Full Stack Java Developer
+
 
 
